@@ -1,0 +1,12 @@
+# Dependencies — these get downloaded fresh on each machine, no need to store them
+node_modules/
+
+# Secret files — NEVER commit these, they contain your passwords
+.env
+*.env.local
+
+# Mac junk files
+.DS_Store
+
+# Build output — generated automatically, no need to store
+frontend/dist
