@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import Logo from './Logo';
 
-const BACKEND_URL   = 'http://localhost:3001';
+const BACKEND_URL   = 'https://delivery-robot-fdh2.onrender.com';
 const LOCATION_CODE = 'ROBORUN47';
 
 const STATUS_STEPS = [
