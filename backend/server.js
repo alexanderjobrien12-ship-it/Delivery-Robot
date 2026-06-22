@@ -1,6 +1,6 @@
-const express    = require('express');
-const cors       = require('cors');
-const nodemailer = require('nodemailer');
+const express = require('express');
+const cors    = require('cors');
+const { Resend } = require('resend');
 require('dotenv').config();
 
 const app  = express();
@@ -39,13 +39,7 @@ function formatTime(iso) {
 }
 
 // ── Email setup ───────────────────────────────────────────────────────────────
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.GMAIL_USER,
-    pass: process.env.GMAIL_APP_PASSWORD,
-  },
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Builds one big HTML button for each status step you can tap on your phone
 function buildStatusButtons(order) {
@@ -69,37 +63,30 @@ function buildStatusButtons(order) {
 }
 
 async function sendOrderEmail(order) {
-  const mailOptions = {
-    from:    process.env.GMAIL_USER,
-    to:      process.env.NOTIFY_EMAIL,
-    subject: `New Order #${order.id} — ${order.item} to ${order.room}`,
-    html: `
-      <div style="font-family:sans-serif;max-width:480px;margin:0 auto">
-        <h2 style="color:#1e1b4b">New delivery order!</h2>
-        <table style="width:100%;border-collapse:collapse">
-          <tr><td style="padding:6px 0;color:#64748b">Order #</td><td><strong>${order.id}</strong></td></tr>
-          <tr><td style="padding:6px 0;color:#64748b">Room</td><td><strong>${order.room}</strong></td></tr>
-          <tr><td style="padding:6px 0;color:#64748b">Item</td><td><strong>${order.item}</strong></td></tr>
-          <tr><td style="padding:6px 0;color:#64748b">Note</td><td>${order.note || '—'}</td></tr>
-        </table>
-
-        <hr style="border:none;border-top:1px solid #e2e8f0;margin:20px 0"/>
-
-        <p style="color:#374151;font-weight:600;margin-bottom:10px">
-          Tap to update status from your phone:
-        </p>
-        <div>${buildStatusButtons(order)}</div>
-
-        <p style="color:#94a3b8;font-size:12px;margin-top:20px">
-          Note: update links work on your home network now,
-          and from anywhere once deployed to Render.
-        </p>
-      </div>
-    `,
-  };
-
   try {
-    await transporter.sendMail(mailOptions);
+    await resend.emails.send({
+      from:    'OrderIt! <onboarding@resend.dev>',
+      to:      [process.env.NOTIFY_EMAIL],
+      subject: `New Order #${order.id} — ${order.item} to ${order.room}`,
+      html: `
+        <div style="font-family:sans-serif;max-width:480px;margin:0 auto">
+          <h2 style="color:#1e1b4b">New delivery order!</h2>
+          <table style="width:100%;border-collapse:collapse">
+            <tr><td style="padding:6px 0;color:#64748b">Order #</td><td><strong>${order.id}</strong></td></tr>
+            <tr><td style="padding:6px 0;color:#64748b">Room</td><td><strong>${order.room}</strong></td></tr>
+            <tr><td style="padding:6px 0;color:#64748b">Item</td><td><strong>${order.item}</strong></td></tr>
+            <tr><td style="padding:6px 0;color:#64748b">Note</td><td>${order.note || '—'}</td></tr>
+          </table>
+
+          <hr style="border:none;border-top:1px solid #e2e8f0;margin:20px 0"/>
+
+          <p style="color:#374151;font-weight:600;margin-bottom:10px">
+            Tap to update status from your phone:
+          </p>
+          <div>${buildStatusButtons(order)}</div>
+        </div>
+      `,
+    });
     console.log(`Email sent for order #${order.id}`);
   } catch (err) {
     console.error('Email send failed:', err.message);
@@ -223,24 +210,23 @@ app.patch('/orders/:id', (req, res) => {
 });
 
 async function sendEditEmail(order) {
-  const mailOptions = {
-    from:    process.env.GMAIL_USER,
-    to:      process.env.NOTIFY_EMAIL,
-    subject: `Order #${order.id} was edited — ${order.item} to ${order.room}`,
-    html: `
-      <div style="font-family:sans-serif;max-width:480px;margin:0 auto">
-        <h2 style="color:#1e1b4b">Order #${order.id} was edited</h2>
-        <p style="color:#64748b">Here's what it looks like now:</p>
-        <table style="width:100%;border-collapse:collapse">
-          <tr><td style="padding:6px 0;color:#64748b">Room</td><td><strong>${order.room}</strong></td></tr>
-          <tr><td style="padding:6px 0;color:#64748b">Item</td><td><strong>${order.item}</strong></td></tr>
-          <tr><td style="padding:6px 0;color:#64748b">Note</td><td>${order.note || '—'}</td></tr>
-        </table>
-      </div>
-    `,
-  };
   try {
-    await transporter.sendMail(mailOptions);
+    await resend.emails.send({
+      from:    'OrderIt! <onboarding@resend.dev>',
+      to:      [process.env.NOTIFY_EMAIL],
+      subject: `Order #${order.id} was edited — ${order.item} to ${order.room}`,
+      html: `
+        <div style="font-family:sans-serif;max-width:480px;margin:0 auto">
+          <h2 style="color:#1e1b4b">Order #${order.id} was edited</h2>
+          <p style="color:#64748b">Here's what it looks like now:</p>
+          <table style="width:100%;border-collapse:collapse">
+            <tr><td style="padding:6px 0;color:#64748b">Room</td><td><strong>${order.room}</strong></td></tr>
+            <tr><td style="padding:6px 0;color:#64748b">Item</td><td><strong>${order.item}</strong></td></tr>
+            <tr><td style="padding:6px 0;color:#64748b">Note</td><td>${order.note || '—'}</td></tr>
+          </table>
+        </div>
+      `,
+    });
     console.log(`Edit email sent for order #${order.id}`);
   } catch (err) {
     console.error('Edit email failed:', err.message);
